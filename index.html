@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type="text/css">
+        /*Montserrat font*/
+        @import url(http://fonts.googleapis.com/css?family=Montserrat);
+        /*basic reset*/
+        img {margin: 5px; padding: 5px;}
+        body {text-align: center;}
+    </style>
+    <title>WifiSheep</title>
+</head>
+<body onload="getPicList()">
+<div id="app"></div>
+<script src="js/jquery.js"></script>
+<script src="js/jquery.easing.min.js"></script> <!-- Resource jQuery -->
+<script src="js/prefixfree.js"></script> <!-- Resource jQuery -->
+<script type="text/javascript"></script>
+
+<script>
+    var number;
+    function getPicList(){
+        $.ajax({
+            url: 'getContent.php?action=getList',
+            method: 'GET',
+            dataType: 'JSON',
+            success: function (data) {
+                $.each(data,function(index,obj){
+                    var image= '<img src="'+ obj +'"' + 'alt="image" width="150px" height="150px" class="'+index+'">';;
+                    $('#app').append(image);
+                });
+                getNumber();
+                defaultAnimate();
+            }
+        });
+    }
+
+
+    function getNumber()
+    {
+        $.ajax({
+            url: 'getContent.php?action=getNumber',
+            method: 'GET',
+            dataType: 'JSON',
+            success: function (data) {
+                number = data;
+            }
+        });
+    }
+
+    function isChange()
+    {
+        $.ajax({
+            url: 'getContent.php?action=getNumber',
+            method: 'GET',
+            dataType: 'JSON',
+            success: function (data) {
+                var newNumber = data;
+                // 当有新的图片的时候，添加图片
+                if (newNumber > number){
+                    addImage(number);
+                }
+                number = newNumber;
+            }
+        });
+    }
+
+    function addImage(oldNumber)
+    {
+        var i =  oldNumber;
+        $.ajax({
+            url: 'getContent.php?action=getList',
+            method: 'GET',
+            dataType: 'JSON',
+            success: function (data) {
+                var length = data.length;
+                for(i ; i < length;i++ ){
+                    var image = '<img src="'+ data[i] +'"' + 'alt="image" width="150px" height="150px" class="'+ i +'">';
+                    $('#app').append(image);
+                    console.log(i);
+                    $("." + i ).fadeTo(500, 0).promise().done(function(){
+                        animate();
+                    })
+                }
+
+            }
+        });
+    }
+
+    // timer to notify the change ;
+    setInterval('isChange()',1000);
+
+
+
+    var delay, easing;
+    //defaults
+    var mode = "random";
+    var easing = "easeOutBounce";
+
+    var d = 0; //delay
+    var ry, tz, s; //transform params
+
+    //animation time
+    function defaultAnimate(){
+        //fading out the thumbnails with style
+        $("img").each(function(){
+            d = Math.random()*1000; //1ms to 1000ms delay
+            $(this).delay(d).animate({opacity: 0}, {
+                //while the thumbnails are fading out, we will use the step function to apply some transforms. variable n will give the current opacity in the animation.
+                step: function(n){
+                    s = 1-n; //scale - will animate from 0 to 1
+                    $(this).css("transform", "scale("+s+")");
+                },
+                duration: 1000,
+            })
+        }).promise().done(function(){
+            //after *promising* and *doing* the fadeout animation we will bring the images back
+            storm();
+        })
+    }
+
+    //bringing back the images with style
+    function storm()
+    {
+        $("img").each(function(){
+            d = Math.random()*1000;
+            $(this).delay(d).animate({opacity: 1}, {
+                step: function(n){
+                    //rotating the images on the Y axis from 360deg to 0deg
+                    ry = (1-n)*360;
+                    //translating the images from 1000px to 0px
+                    tz = (1-n)*1000;
+                    //applying the transformation
+                    $(this).css("transform", "rotateY("+ry+"deg) translateZ("+tz+"px)");
+                },
+                duration: 3000,
+                //some easing fun. Comes from the jquery easing plugin.
+                easing: 'easeOutQuint',
+            })
+        })
+    }
+
+    function animate()
+    {
+        $("img").each(function(i){
+            delay = calculate_delay(i);
+            $(this).delay(delay).animate({opacity: 1}, {
+                step: function(now, mx){
+                    $(this).css("transform", "scale("+now+")");
+                },
+                duration: 1000,
+                easing: easing,
+            });
+        })
+    }
+
+    function linear(){
+        $("img").fadeTo(500, 0).promise().done(function(){
+            animate();
+        })
+    }
+
+    function calculate_delay(index)
+    {
+        if(mode == "linear")
+            return index*50;
+        else if(mode == "horizontal")
+            return index%10*50;
+        else if(mode == "vertical")
+            return index/10*50;
+        else if(mode == "random")
+            return Math.random()*number*25;
+    }
+</script>
+</body>
+</html>
